@@ -12,8 +12,8 @@ Usage: Rscript div_plot.R [data_file] [species_accession]
 
 This script generates a PDF depicting the sequence divergence of TEs relative to the repeat lib. 
 
-R and its packages can be installed with conda.
-e.g., conda config --add channels conda-forge && conda config --add channels CRAN && conda create -n test r-essentials r-tidyr r-dplyr r-ggplot2 r-scales r-here
+R and its packages can be installed with conda or mamba.
+e.g., mamba create -n R r-essentials r-tidyr r-dplyr r-ggplot2 r-scales r-here
 
 ")
 }
@@ -34,44 +34,52 @@ library(ggplot2)
 library(scales)
 library(here)
 
-# Set the working directory to the script's location
+# Set the working directory to the script's location.
 script_dir <- dirname(Sys.getenv("R_SCRIPT"))
 setwd(here())
 
 data_file <- args[1]  # Data file name (e.g., 'testmaize.txt')
 species_accession <- args[2]  # Species accession label (e.g., 'Maize_B73')
 
-# Define the color mapping for TE categories
-TE_colors2 <- c("LTR/Copia"="#D1E5F0", "LTR/Gypsy"="#92C5DE", "LTR/unknown"="#4393C3", 
+# Define the color mapping for TE categories.
+TE_colors2 <- c("LTR/Ty1"="#D1E5F0", "LTR/Ty3"="#92C5DE", "LTR/unknown"="#4393C3", 
                 "LINE/L1"="#2166AC",  "LINE/RTE"="#2166AC", "LINE/unknown"="#2166AC",
                 "DNA/Helitron"="#FFFFBF", "TIR/Tc1_Mariner"="#A50026", "TIR/Mutator"="#D73027", 
                 "TIR/PIF_Harbinger"="#F46D43", "TIR/CACTA"="#FDAE61", "TIR/hAT"="#FEE090", 
-                "TIR/unknown"='red', "centromeric_repeat"="gray", "rDNA"="gray", "subtelomere"="gray", 
-                "knob"="gray", "low_complexity"="gray", 'plastid'="gray", 'unknown'='gray')
+                "TIR/unknown"='red', "centromeric_repeat"="gray", "rDNA"="gray", "Subtelomere"="gray", 
+                "Knob"="gray", "low_complexity"="gray", 'plastid'="gray", 'unknown'='gray')
 
-# Read data and format genome names
+# Read data and format genome names.
 long_div <- read.csv(data_file, sep="\t", header=TRUE)
 
-# Filter out rows with 'supfam' values not in TE_colors2
+# Rename categories in the data.
+long_div <- long_div %>%
+  mutate(supfam = recode(supfam, 
+                         "LTR/Gypsy" = "LTR/Ty3", 
+                         "LTR/Copia" = "LTR/Ty1",
+                         "subtelomere" = "Subtelomere",
+                         "knob" = "Knob"))
+
+# Filter out rows with 'supfam' values not in TE_colors2.
 long_div <- long_div[long_div$supfam %in% names(TE_colors2), ]
 
-# Assuming 'genome_size' is a column in 'long_div' and contains the size in base pairs
+# Assuming 'genome_size' is a column in 'long_div' and contains the size in base pairs.
 genome_size_bp <- mean(long_div$genome_size)  # Replace with appropriate filtering if needed
 
-# Convert to Mb and format
+# Convert to Mb and format.
 genome_size_Mb <- genome_size_bp / 1e6
 formatted_genome_size <- format(round(genome_size_Mb), big.mark = ",", scientific = FALSE)
 
-# Create the label using the species accession argument
+# Create the label using the species accession argument.
 genome_label <- paste(species_accession, " (", formatted_genome_size, " Mb)", sep="")
 
-# Specify the output file name for the PDF
+# Specify the output file name for the PDF.
 output_file_name <- paste(species_accession, "_divergence_plot.pdf", sep="")
 
-# Start PDF output
+# Start PDF output.
 pdf(file = output_file_name)
 
-# Plot TE divergence
+# Plot TE divergence.
 div_p <- long_div %>%
   filter(!grepl('SINE|LINE', supfam)) %>%
   filter(div < 40) %>%
@@ -84,8 +92,8 @@ div_p <- long_div %>%
     labs(fill = "", title = genome_label) +  
     theme(axis.text = element_text(size = 11), axis.title = element_text(size = 12))
 
-# Display the plot
+# Display the plot.
 print(div_p)
 
-# Close the PDF device
+# Close the PDF device.
 dev.off()
