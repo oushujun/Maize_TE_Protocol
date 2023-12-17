@@ -9,15 +9,15 @@ Usage: Rscript density_plotter.R <filename> [chrom_prefix] [merge]
 
 This script plots the distribution of EDTA annotations across chromosomes.
 
-Dependencies: ggplot2 for plotting. R and its packages can be installed with conda.
+Dependencies: ggplot2, dplyr for plotting. R and its packages can be installed with conda.
 For installation:
-conda config --add channels conda-forge && conda config --add channels CRAN && conda create -n r_env r-base r-ggplot2
+mamba create -n R r-base r-ggplot2 r-dplyr
 
 ")
   quit(status = 0)
 }
 
-# Get command line arguments
+# Get command line arguments.
 args <- commandArgs(trailingOnly = TRUE)
 
 # Check for no arguments or help request
@@ -27,54 +27,86 @@ if (length(args) == 0 || args[1] == '-h' || args[1] == '--help') {
 
 filename <- args[1]
 
-# Check if the file has a header
+# Check if the file has a header.
 has_header <- readLines(filename, n = 1)
 header <- if (grepl("chrom", has_header, fixed = TRUE)) TRUE else FALSE
 
 repeats <- read.table(filename, sep='\t', header = header, 
                       col.names = if (!header) c('chrom', 'coord', 'density', 'type') else NULL)
 
-# Exclude specific types
+# Exclude specific types.
 excluded_types <- c('target_site_duplication', 'repeat_region', 'long_terminal_repeat')
 repeats <- subset(repeats, !type %in% excluded_types)
 
-# Optional chromosome filtering
+# Replace 'Copia' with 'Ty1' and 'Gypsy' with 'Ty3'.
+library(dplyr)
+repeats <- repeats %>%
+    mutate(type = gsub("Copia_LTR_retrotransposon", "Ty1_LTR_retrotransposon", type)) %>%
+    mutate(type = gsub("Gypsy_LTR_retrotransposon", "Ty3_LTR_retrotransposon", type))
+
+# Reorder the type factor to move 'Ty1_LTR_retrotransposon' higher up.
+repeats$type <- factor(repeats$type, levels = c("Ty1_LTR_retrotransposon", setdiff(unique(repeats$type), "Ty1_LTR_retrotransposon")))
+
+# Optional chromosome filtering.
 if (length(args) > 1 && args[2] != "merge") {
   chrom_prefix <- args[2]
   repeats <- subset(repeats, grepl(paste0("^", chrom_prefix), chrom))
 }
 
-# Convert chromosome names to a factor with the correct order
+# Convert chromosome names to a factor with the correct order.
 chrom_levels <- unique(repeats$chrom)
-chrom_levels_sorted <- chrom_levels[order(as.numeric(gsub("chr", "", chrom_levels)))]
+chrom_levels_sorted <- chrom_levels[order(as.numeric(gsub("[^0-9]", "", chrom_levels)))]
 repeats$chrom <- factor(repeats$chrom, levels = chrom_levels_sorted)
 
-# Check for 'merge' flag
+# Check for 'merge' flag.
 merge_plots <- FALSE
 if (length(args) >= 3 && tolower(args[3]) == "merge") {
   merge_plots <- TRUE
 }
 
-# Plotting
+# Plotting.
 library(ggplot2)
 
+# Define a shuffled color palette using hcl.colors with the 'Dark 3' palette.
+num_categories <- length(unique(repeats$type))
+set.seed(46) # Edit the seed number to reshuffle the colors.
+color_palette <- sample(hcl.colors(num_categories, "Dark 3"))
+
+plot_border_theme <- theme(
+  panel.border = element_rect(colour = "grey", fill=NA, linewidth=1),
+  axis.text.x = element_text(),
+  axis.ticks.x = element_line(),
+  plot.margin = margin(1, 1, 1, 1, "lines") # Adjust plot margin
+)
+
 if (merge_plots) {
+  merged_plot_theme <- theme(
+    panel.border = element_rect(colour = "grey", fill=NA, linewidth=1),
+    plot.margin = margin(1, 1, 1, 1, "lines"),
+    axis.text.x = element_text(size = rel(0.8)) # Reduced font size for x-axis labels
+  )
+
   p <- ggplot(repeats, aes(x = coord / 1e6, y = density * 100, color = type)) + 
        geom_line() +
-       facet_wrap(~ chrom, scales = "free_x") +  # Scales panels by chromosome length
+       facet_wrap(~ chrom, scales = "free_x") + 
        labs(title = "Density of Repeat Types on Chromosomes (%)", 
-     		x = "Position on chromosome (Mb)", 
-    		y = "Percent repeat type in window (%)", 
-     color = "Type") + 
+            x = "Position on chromosome (Mb)", 
+            y = "Percent repeat type in window (%)", 
+            color = "Type") + 
        theme_minimal() +
-       theme(axis.text.x = element_blank(),  # Remove x-axis text
-             axis.ticks.x = element_blank())  # Remove x-axis ticks
+       merged_plot_theme +
+       scale_color_manual(values = color_palette)
 
-  # Save the plot to a PDF file
+  # Save the plot to a PDF file.
   pdf("chromosome_density_plots_merged.pdf", width = 8, height = 6)
   print(p)
   dev.off()
 } else {
+  unmerged_plot_theme <- theme(
+    panel.border = element_rect(colour = "grey", fill=NA, linewidth=1),
+    plot.margin = margin(1, 1, 1, 1, "lines")
+  )
+
   pdf("chromosome_density_plots.pdf", width = 8, height = 6)
   for (chr in unique(repeats$chrom)) {
     subset_df <- repeats[repeats$chrom == chr,]
@@ -86,7 +118,11 @@ if (merge_plots) {
      			x = "Position on chromosome (Mb)", 
      			y = "Percent repeat type in window (%)", 
      color = "Type") +
-           theme_minimal()
+           theme_minimal() +
+           unmerged_plot_theme +
+           scale_color_manual(values = color_palette) +
+           scale_x_continuous(expand = c(0, 0)) + # Tighten grey plot border for x-axis
+           scale_y_continuous(expand = expansion(mult = c(0.005, 0.01))) 
       print(p)
     } else {
       cat(paste("Not enough data points to plot for chromosome:", chr, "\n"))
