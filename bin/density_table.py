@@ -42,7 +42,7 @@ def create_genome_fai(genome_file, output_directory):
     """
     subprocess.run(["samtools", "faidx", genome_file], stderr=subprocess.DEVNULL)
     # Move the .fai file to the output directory
-    fai_file = genome_file + ".fai"
+    fai_file = os.path.abspath(genome_file) + ".fai"
     if os.path.exists(fai_file):
         shutil.move(fai_file, output_directory)
 
@@ -51,7 +51,7 @@ def make_windows(fai_file, output_file, output_directory):
     Generates window sizes across the genome using bedtools.
     """
     modified_fai = "genome.fa.fai2"
-    with open(os.path.join(output_directory, fai_file), 'r') as infile, open(os.path.join(output_directory, modified_fai), 'w') as outfile:
+    with open(fai_file, 'r') as infile, open(os.path.join(output_directory, modified_fai), 'w') as outfile:
         for line in infile:
             parts = line.split('\t')
             outfile.write(f"{parts[0]}\t{parts[1]}\n")
@@ -129,7 +129,8 @@ def main():
         create_bed_files(reformatted_gff, output_directory)
         create_genome_fai(args.genome, output_directory)
         window_file = "windows.bed.sizes"
-        make_windows(args.genome + ".fai", window_file, output_directory)
+        fai_file_path = os.path.join(output_directory, os.path.basename(args.genome) + ".fai")
+        make_windows(fai_file_path, window_file, output_directory)
         calculate_density(window_file, output_directory)
         merge_and_format(output_directory)
     except Exception as e:
