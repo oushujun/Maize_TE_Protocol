@@ -94,7 +94,7 @@ set.seed(46) # Change the seed for a new shuffle
 color_palette <- sample(hcl.colors(num_categories, "Dark 3"))
 
 plot_border_theme <- theme(
-  panel.border = element_rect(colour = "grey", fill=NA, linewidth=1),
+  panel.border = element_rect(colour = "grey", fill=NA, size=1),
   axis.text.x = element_text(),
   axis.ticks.x = element_line(),
   plot.margin = margin(1, 1, 1, 1, "lines") # Adjust plot margin
@@ -114,12 +114,12 @@ if (merge_plots) {
        scale_color_manual(values = color_palette)
 
   # Save the plot to a PDF file
-  pdf("chromosome_density_plots_merged.pdf", width = 8, height = 6)
+  pdf("chromosome_density_plots_merged.pdf", width = 16, height = 6)
   print(p)
   dev.off()
 } else {
   # Unmerged plot logic
-  pdf("chromosome_density_plots.pdf", width = 8, height = 6)
+  pdf("chromosome_density_plots.pdf", width = 12, height = 4)
   for (chr in unique(repeats$chrom)) {
     subset_df <- repeats[repeats$chrom == chr,]
     

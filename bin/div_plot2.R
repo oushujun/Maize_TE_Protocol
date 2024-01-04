@@ -77,14 +77,14 @@ genome_label <- paste(species_accession, " (", formatted_genome_size, " Mb)", se
 output_file_name <- paste(species_accession, "_divergence_plot.pdf", sep="")
 
 # Start PDF output.
-pdf(file = output_file_name)
+pdf(file = output_file_name, width = 8, height = 5)
 
 # Plot TE divergence.
 div_p <- long_div %>%
   filter(!grepl('SINE|LINE', supfam)) %>%
   filter(div < 40) %>%
   ggplot(aes(fill = supfam, y = pcnt, x = div)) + 
-    geom_bar(position = "stack", stat = "identity", color = "black", linewidth = 0.1) +
+    geom_bar(position = "stack", stat = "identity", color = "black", size = 0.1) +
     scale_fill_manual(values = TE_colors2) +
     theme_classic() + 
     xlab("Divergence (%)") +
