@@ -6,7 +6,7 @@ Usage: Rscript density_plotter.R <filename> [chrom_string] [merge] [threshold]
 <filename>      : Path to the TE superfamily density table generated using density_table.py.
 [chrom_string]  : Optional. Specifies a string pattern to include in the analysis. Chromosomes without this string will be excluded. Useful for excluding scaffolds, contigs, or specific chromosome IDs.
 [merge]         : Optional. Boolean flag. If 'merge' is specified, all chromosome plots are merged onto a single page.
-[threshold]     : Optional. Exclusionary threshold for repeat types. Types that do not exceed this density percentage at any position will be excluded.
+[threshold]     : Optional. Exclusionary threshold for repeat types. Types that do not exceed this density percentage at any position will be excluded [00-100].
 
 This script plots the distribution of EDTA annotations across chromosomes.
 
