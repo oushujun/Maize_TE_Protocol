@@ -1,11 +1,12 @@
 # Function to print help and usage instructions
 print_help <- function() {
   cat("
-Usage: Rscript density_plotter.R <filename> [chrom_string] [merge]
+Usage: Rscript density_plotter.R <filename> [chrom_string] [merge] [threshold]
 
 <filename>      : Path to the TE superfamily density table generated using density_table.py.
 [chrom_string]  : Optional. Specifies a string pattern to include in the analysis. Chromosomes without this string will be excluded. Useful for excluding scaffolds, contigs, or specific chromosome IDs.
 [merge]         : Optional. Boolean flag. If 'merge' is specified, all chromosome plots are merged onto a single page.
+[threshold]     : Optional. Exclusionary threshold for repeat types. Types that do not exceed this density percentage at any position will be excluded.
 
 This script plots the distribution of EDTA annotations across chromosomes.
 
@@ -50,19 +51,33 @@ repeats$type <- factor(repeats$type, levels = c("Ty1_LTR_retrotransposon", setdi
 # Initialize variables
 chrom_string <- NULL
 merge_plots <- FALSE
+threshold <- NULL
 
 # Check arguments
 for (arg in args[-1]) {
   if (tolower(arg) == "merge") {
     merge_plots <- TRUE
   } else {
-    chrom_string <- arg
+    # Attempt to convert argument to numeric
+    numeric_arg <- as.numeric(arg)
+    if (!is.na(numeric_arg)) {
+      threshold <- numeric_arg
+    } else {
+      chrom_string <- arg
+    }
   }
 }
 
 # Optional chromosome string filtering
 if (!is.null(chrom_string)) {
   repeats <- subset(repeats, grepl(chrom_string, chrom))
+}
+
+# Apply the exclusionary threshold
+if (!is.null(threshold)) {
+  max_density <- aggregate(density ~ type, data = repeats, max)
+  included_types <- max_density[max_density$density * 100 > threshold, "type"]
+  repeats <- subset(repeats, type %in% included_types)
 }
 
 # Convert chromosome names to a factor with the correct order
