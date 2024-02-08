@@ -9,7 +9,7 @@ Usage: Rscript density_plotter.R <filename> <chrom_string> [merge] <threshold> [
 <threshold>     : Optional. Exclusionary threshold for plotting repeat types. Types that do not exceed this density percentage at any position will be excluded [00-100]. ie, '02' would exclude types that do not exceed 2% density in any window.
 [no_size_cutoff]: Optional. Boolean flag. If 'no_size_cutoff' is specified, all chromosomes and scaffolds will be plotted. 
 
-This script plots the distribution of EDTA annotations across chromosomes.
+This script plots the distribution of EDTA annotations across chromosomes. Sliding windows are 1Mb in length, with a step size of 500kb
 
 Dependencies: ggplot2, dplyr for plotting. R and its packages can be installed with conda.
 For installation:
@@ -80,10 +80,28 @@ excluded_types <- c('target_site_duplication', 'repeat_region', 'long_terminal_r
 repeats <- subset(repeats, !type %in% excluded_types)
 
 # Replace 'Copia' with 'Ty1' and 'Gypsy' with 'Ty3'.
+# Also mutate other nomenclatures. 
+# Others may need to be added based on the input.
 library(dplyr)
 repeats <- repeats %>%
-    mutate(type = gsub("Copia_LTR_retrotransposon", "Ty1_LTR_retrotransposon", type)) %>%
-    mutate(type = gsub("Gypsy_LTR_retrotransposon", "Ty3_LTR_retrotransposon", type))
+    mutate(type = gsub("Copia_LTR_retrotransposon", "LTR/Ty1", type)) %>%
+    mutate(type = gsub("Gypsy_LTR_retrotransposon", "LTR/Ty3", type)) %>%
+    mutate(type = gsub("knob", "Knob", type)) %>%
+    mutate(type = gsub("LINE_element", "LINE/unknown", type)) %>%
+    mutate(type = gsub("SINE_element", "SINE/unknown", type)) %>%
+    mutate(type = gsub("rDNA_intergenic_spacer_element", "rDNA intergenic spacer", type)) %>%
+    mutate(type = gsub("L1_LINE_retrotransposon", "LINE/L1", type)) %>%
+    mutate(type = gsub("satellite_DNA", "Satellite", type)) %>%
+    mutate(type = gsub("PIF_Harbinger_TIR_transposon", "TIR/PIF_Harbinger", type)) %>%
+    mutate(type = gsub("helitron", "Helitron", type)) %>%
+    mutate(type = gsub("RTE_LINE_retrotransposon", "LINE/RTE", type)) %>%
+    mutate(type = gsub("LTR_retrotransposon", "LTR/unknown", type)) %>%
+    mutate(type = gsub("hAT_TIR_transposon", "TIR/hAT", type)) %>%
+    mutate(type = gsub("CACTA_TIR_transposon", "TIR/CACTA", type)) %>%
+    mutate(type = gsub("Tc1_Mariner_TIR_transposon", "TIR/Tc1_Mariner", type)) %>%
+    mutate(type = gsub("subtelomere", "Subtelomere", type)) %>%
+    mutate(type = gsub("non_LTR_retrotransposon", "nonLTR/unknown", type)) %>%
+    mutate(type = gsub("Mutator_TIR_transposon", "TIR/Mutator", type))
 
 # Reorder the type factor to move 'Ty1_LTR_retrotransposon' higher up.
 # This is so that Ty1 and Ty3 dont end up plotted as similar colors.
