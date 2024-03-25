@@ -1,4 +1,5 @@
-# Function to print help and usage instructions.
+# Chris Benson
+# 2024-03-25
 print_help <- function() {
   cat("
 Usage: Rscript density_plotter.R <filename> <chrom_string> [merge] <threshold> [no_size_cutoff]
@@ -122,6 +123,11 @@ if (!is.null(threshold)) {
   repeats <- subset(repeats, type %in% included_types)
 }
 
+# Calculate median density for each type and sort types by this median density in the legend.
+median_density <- aggregate(density ~ type, data = repeats, median)
+ordered_types <- median_density[order(-median_density$density), "type"]
+repeats$type <- factor(repeats$type, levels = ordered_types)
+
 # Convert chromosome names to a factor with the correct order.
 chrom_levels <- unique(repeats$chrom)
 chrom_levels_sorted <- chrom_levels[order(as.numeric(gsub("[^0-9]", "", chrom_levels)))]
@@ -132,7 +138,7 @@ library(ggplot2)
 
 # Define a shuffled color palette using hcl.colors with the 'Dark 3' palette.
 num_categories <- length(unique(repeats$type))
-set.seed(46) # Change the seed for a new shuffle of colors. 
+set.seed(46) # Change the seed for a new shuffle of colors.
 color_palette <- sample(hcl.colors(num_categories, "Dark 3"))
 
 plot_border_theme <- theme(
@@ -143,9 +149,10 @@ plot_border_theme <- theme(
 )
 
 if (merge_plots) {
-
+  # Merged plot logic
   p <- ggplot(repeats, aes(x = coord / 1e6, y = density * 100, color = type)) + 
        geom_line() +
+       geom_point(size = 0, show.legend = TRUE) +  # Invisible points ensure a point entry in the legend, customized to squares via guide_legend.
        facet_wrap(~ chrom, scales = "free_x") + 
        labs(title = "Density of Repeat Types on Chromosomes (%)", 
             x = "Position on chromosome (Mb)", 
@@ -153,32 +160,32 @@ if (merge_plots) {
             color = "Type") + 
        theme_minimal() +
        plot_border_theme +
-       scale_color_manual(values = color_palette) +
+       scale_color_manual(values = color_palette, guide = guide_legend(override.aes = list(shape = 15, size = 6))) + # Thicher legend symbols.
        scale_x_continuous(expand = c(0, 0)) + # Tighten grey plot border for x-axis.
        scale_y_continuous(expand = expansion(mult = c(0.005, 0.01))) # Tighten grey plot border for y-axis.
 
-  # Save the plot to a PDF file.
+  # Save the plot to a PDF file
   pdf("chromosome_density_plots_merged.pdf", width = 16, height = 6)
   print(p)
   dev.off()
   
 } else {
-  
-  # Unmerged plot logic.
+  # Unmerged plot logic
   pdf("chromosome_density_plots.pdf", width = 12, height = 4)
   for (chr in unique(repeats$chrom)) {
     subset_df <- repeats[repeats$chrom == chr,]
     
     if (nrow(subset_df) > 1) {
       p <- ggplot(subset_df, aes(x = coord / 1e6, y = density * 100, group = interaction(chrom, type), color = type)) + 
-           geom_line() + 
+           geom_line() +
+           geom_point(size = 0, show.legend = TRUE) +  # Invisible points ensure a point entry in the legend, customized to squares via guide_legend.
            labs(title = paste("Density of Repeat Types on", chr, "(%)"), 
                 x = "Position on chromosome (Mb)", 
                 y = "Percent repeat type in window (%)", 
                 color = "Type") +
            theme_minimal() +
            plot_border_theme +
-           scale_color_manual(values = color_palette) +
+           scale_color_manual(values = color_palette, guide = guide_legend(override.aes = list(shape = 15, size = 6))) + # Thicher legend symbols.
            scale_x_continuous(expand = c(0, 0)) + # Tighten grey plot border for x-axis.
            scale_y_continuous(expand = expansion(mult = c(0.005, 0.01))) 
       print(p)
