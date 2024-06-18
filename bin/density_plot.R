@@ -126,6 +126,13 @@ if (!is.null(threshold)) {
 # Calculate median density for each type and sort types by this median density in the legend.
 median_density <- aggregate(density ~ type, data = repeats, median)
 ordered_types <- median_density[order(-median_density$density), "type"]
+
+# If there are more than 14 types, keep only the top 14.
+if (length(ordered_types) > 14) {
+  ordered_types <- ordered_types[1:14]
+  repeats <- subset(repeats, type %in% ordered_types)
+}
+
 repeats$type <- factor(repeats$type, levels = ordered_types)
 
 # Convert chromosome names to a factor with the correct order.
@@ -138,7 +145,7 @@ library(ggplot2)
 
 # Define a shuffled color palette using hcl.colors with the 'Dark 3' palette.
 num_categories <- length(unique(repeats$type))
-set.seed(46) # Change the seed for a new shuffle of colors.
+set.seed(44) # Change the seed for a new shuffle of colors.
 color_palette <- sample(hcl.colors(num_categories, "Dark 3"))
 
 plot_border_theme <- theme(
@@ -160,7 +167,7 @@ if (merge_plots) {
             color = "Type") + 
        theme_minimal() +
        plot_border_theme +
-       scale_color_manual(values = color_palette, guide = guide_legend(override.aes = list(shape = 15, size = 6))) + # Thicher legend symbols.
+       scale_color_manual(values = color_palette, guide = guide_legend(override.aes = list(shape = 15, size = 6))) + # Thicker legend symbols.
        scale_x_continuous(expand = c(0, 0)) + # Tighten grey plot border for x-axis.
        scale_y_continuous(expand = expansion(mult = c(0.005, 0.01))) # Tighten grey plot border for y-axis.
 
@@ -185,7 +192,7 @@ if (merge_plots) {
                 color = "Type") +
            theme_minimal() +
            plot_border_theme +
-           scale_color_manual(values = color_palette, guide = guide_legend(override.aes = list(shape = 15, size = 6))) + # Thicher legend symbols.
+           scale_color_manual(values = color_palette, guide = guide_legend(override.aes = list(shape = 15, size = 6))) + # Thicker legend symbols.
            scale_x_continuous(expand = c(0, 0)) + # Tighten grey plot border for x-axis.
            scale_y_continuous(expand = expansion(mult = c(0.005, 0.01))) 
       print(p)
@@ -194,4 +201,3 @@ if (merge_plots) {
     }
   }
   dev.off()
-}
