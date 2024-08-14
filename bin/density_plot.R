@@ -123,9 +123,9 @@ if (!is.null(threshold)) {
   repeats <- subset(repeats, type %in% included_types)
 }
 
-# Calculate median density for each type and sort types by this median density in the legend.
-median_density <- aggregate(density ~ type, data = repeats, median)
-ordered_types <- median_density[order(-median_density$density), "type"]
+# Calculate max density for each type and sort types by this max density in the legend.
+max_density <- aggregate(density ~ type, data = repeats, max)
+ordered_types <- max_density[order(-max_density$density), "type"]
 
 # If there are more than 14 types, keep only the top 14.
 if (length(ordered_types) > 14) {
